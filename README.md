@@ -13,13 +13,12 @@ Suggested reading order.  See Index.scala and use Intellij "Goto declaration".
 | Monoid | code example |
 | Higher-kinded Types | discussion |
 | Functor | code example | // Nested
-| Applicative | discussion |
 | Monad | code example |  // Id
-| Container vs Context | discussion |
 | State | code example |
 | ReaderWriterState | discussion |
-| Monad Transformers | code example |
-| Apply | code example |
+| Monad Transformers | discussion |
+| Applicative (Apply) | code example |
 | ValidatedNec | code example |
-| Kleisli | code example |
-| Contravariant Functor | code example |
+| Kleisli Arrow | discussion |
+| Lens (Monocle) | code example |
+| Other Things | discussion |

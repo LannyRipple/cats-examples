@@ -30,9 +30,9 @@ object p03_HigherKindedTypes {
     }
 
   /*
-   * For the map above we are calculating a value using a function supplied
-   * to the map.  This is pretty much the default view in Scala because higher-
-   * ordered functions are added onto a type using OOP.
+   * For the map function above we are calculating a value using a function supplied
+   * to the map.  This is pretty much the default view of higher-ordered functions in
+   * Scala because you tend to call them as methods introduced via OOP.
    *
    * But we can also view higher-ordered function as ones that accept a function
    * and provide some new function.
@@ -49,11 +49,10 @@ object p03_HigherKindedTypes {
    */
 
   /*
-   * Values have types.  To types have something similar?  They do and it's
+   * Values have types.  Do types have something similar?  They do and it's
    * called a "kind" expressed as "*".
    *
    * The kind of Int is *.
-   * The kind of a function is * (parameterized value).
    * The kind of List[Int] is *.
    * The kind of Either[String,Int] is *.
    *
@@ -61,8 +60,11 @@ object p03_HigherKindedTypes {
    * us a new type if we give it a type first.  It can be viewed as a type
    * constructor or a function on kinds.
    *
-   * So: The kind of List is * => *.
-   * Also: The kind of Either is (*,*) => *.
+   * The kind of List is * -> *.
+   * The kind of Option is * -> *.
+   * The kind of a Function1 is * -> * -> *.
+   * The kind of Map is * -> * -> *.
+   * The kind of Either is * -> * -> *.
    *
    * Note that if we can fix the first type for Either, e.g.,
    */
@@ -70,64 +72,53 @@ object p03_HigherKindedTypes {
       type RightBiasedEither[A] = Either[String,A]
 
    /*
-   * then RightBiasedEither has kind * => * and we can use it as such in places
-   * that expect such a kind.
-   *
-   * There exists higher-ordered functions which we can express with type
-   * (A => B) => A => B.  Here given a function and a value[A] I'll give you
-   * a value[B].  But we can also view this as (A => B) => (A => B).  Give me
-   * a function and I'll give you a new function.
-   */
-
-  def show(x: Int): String = x.toString
-
-  // Hopefully `f` is referentially transparent!
-  def doubleShow(f: Int => String)(x: Int): String = s"${f(x)}${f(x)}"
-
-  // Here evaluate `f` only once in case of side-effects
-  def fdoubleShow(f: Int => String): Int => String =
-    (x: Int) => { val y = f(x); s"$y$y"}
+    * then RightBiasedEither has kind * => * and we can use it as such in places
+    * that expect such a kind.
+    */
 
   /*
-   * Leading question: Are there higher-kinded types?
+   * Higher-kinded types.
+   *
+   * Like higher-ordered functions that take a function (a paramaterized value)
+   * to calculate a value a higher-kinded type takes a type constructor
+   * (a paramaterized type) to calculate a type.
+   *
+   * A Functor is a higher-kinded type (one of many we will discuss).
+   *
+   * Given a type constructor (kind: * -> *) a Functor will return a new
+   * type (kind: *) so the kind of a Functor is (* -> *) -> *.
    */
   import scala.language.higherKinds
 
-  trait ExampleFunctor[F[_]] {
+  trait Functor[F[_]] {
     def fmap[A,B](fa: F[A])(f: A => B): F[B]
   }
 
   /*
-   * A Functor encapsulates being able to map over a collection of some type.
-   * Here I'm using the name `fmap` instead to be clear vs List.map
+   * A Functor encapsulates being able to map over a "context".
    *
-   * A Functor is a higher-kinded type.  Given a type constructor (kind: * => *)
-   * it will return a new type (kind: *) so the kind of a Functor is (* => *) => *.
+   * Here are some example contexts.  Why am I saying context instead of data-structure
+   * or container?  The first three are obvious containers.  What about the next ones?
+   *
+   *   Option    - computation that might fail
+   *   List      - computation of a non-deterministic value
+   *   Either    - computation that might fail and provide a reason of failure
+   *
+   *   Id        - computation working with pure (referentially transparent) values
+   *   Future    - computation which will eventually provide a value
+   *   Function1 - calculation of a value using an environment
+   *   Cont      - calculation needing a callback to complete (i.e., continuation-passing style)
    */
 
-  implicit object ListFunctor extends ExampleFunctor[List] {
+  import FunctorImplicits._
 
-    def fmap[A,B](fa: List[A])(f: A => B): List[B] =
-      fa match {
-        case Nil => Nil
-        case h :: rest => f(h) :: map(rest)(f)
-      }
-  }
+  // I will use the `fmap` instead of `map` in the implementation to show that
+  // we aren't hooking in to the builtin `map` functions.
 
-  implicit class ListMapper[A](val xs: List[A]) extends AnyVal {
-    def fmap[B](f: A => B)(implicit F: ExampleFunctor[List]): List[B] =
-      F.fmap(xs)(f)
-  }
+  Option(3).fmap(plusOne)      // Option(4)
 
-  List(1,2,3).fmap(plusOne)
+  List(1,2,3).fmap(plusOne)    // List(2,3,4)
 
-
-  implicit object OptionFunctor extends ExampleFunctor[Option] {
-
-    def fmap[A,B](fa: Option[A])(f: A => B): Option[B] =
-      fa match {
-        case Some(a) => Some(f(a))
-        case None => None
-      }
-  }
+  val h = {x: Int => x + 3}.fmap(plusOne)   // Mind blown?
+  h(1)  // 5
 }

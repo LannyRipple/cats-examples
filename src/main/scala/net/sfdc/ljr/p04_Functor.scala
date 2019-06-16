@@ -6,9 +6,11 @@ object p04_Functor {
    * Functor was talked about a bit earlier.  It is a higher-kinded type constructor
    * encapsulating the idea (and a type signature for implementation) of
    * "things that can be mapped over".  That is, if your data structure can admit
-   * a Functor for a type it contains you can change the values (and maybe the
-   * types) using a `map` helper.
+   * a Functor for a type it contains you can change the values (and types)
+   * using a `map` helper.
    */
+
+  import scala.language.higherKinds
 
   trait ExampleFunctor[F[_]] {
     def map[A,B](fa: F[A])(f: A => B): F[B]
@@ -22,14 +24,14 @@ object p04_Functor {
    */
 
   def intToString(x: Int): String = x.toString
-  def strToInt(s: String): Int = s.length
+  def strToFloat(s: String): Float = s.length.toFloat
 
   /*
-   * Given two functions f and g, a well behaved Functor preserves composition
    * Note that this isn't Cats Functor but does show Option.map is well behaved
    */
-  Option(3).map(intToString).map(strToInt)       // 5
-  Option(3).map(intToString _ andThen strToInt)  // 5
+  Option(3).map(identity)                          // Option(3)
+  Option(3).map(intToString).map(strToFloat)       // Option(5.0f)
+  Option(3).map(intToString _ andThen strToFloat)  // Option(5.0f)
 
   /*
    * Using Cats
@@ -39,6 +41,29 @@ object p04_Functor {
   import cats._            // import "kernel" definitions.  E.g., trait Monoid[A]
   import cats.data._       // import Validated, State constructors
   import cats.implicits._  // === import cats.instances._; import cats.syntax._
+
+  /*
+   * Oddly enough Functions (A => B) have a Functor instance.
+   * Map does the same thing as `andThen` to compose functions.
+   * This needs scalacOption -Ypartial-unification in Scala 2.11
+   * (A lot of Cats assumes partial-unification.)
+   */
+
+  // h: Int => String
+  val h =
+    {x: Int => x * 3}                 // Int => Int
+      .map {x: Int => x + 100}        // Int => Int
+      .map(intToString)               // Int => String
+
+  h(1)  // "103"
+
+  // g: Int => String
+  val g =
+    {x: Int => x * 3}                 // Int => Int
+      .andThen {x: Int => x + 100}    // Int => Int
+      .andThen(intToString)           // Int => String
+
+  g(1)  // "103"
 
   /*
    * Functor itself is more of a building block for more powerful Typeclasses but
@@ -73,18 +98,12 @@ object p04_Functor {
    * Functors.
    *
    * Note here that Either does not have the correct kind as needed by Functor.
-   * Either has kind (*,*) => * and Functor needs * => *.  We can introduce a
+   * Either has kind * -> * -> * and Functor needs * -> *.  We can introduce a
    * type alias to fix the first kind to String.  This reshapes the kind to
-   * what Functor needs to work.  This pattern happens a lot and SI-2712 improved
-   * Scala type inference in useful ways to make working with higher-kinded types
-   * require less boilerplate.  The scalaOption to turn it on
-   *
-   *    "-Ypartial-unification"
-   *
-   * is not on by default.  Using type aliases provides a workaround for older code.
+   * what Functor needs to work.
    */
 
-  type RBEither[A] = Either[String,A]    // Needed so Either will have right kind
+  type RBEither[A] = Either[String,A]    // Needed so Either will have correct kind
   val ftor = Functor[List].compose[Option].compose[RBEither]
 
   ftor.map(list)(collatz)
@@ -96,11 +115,35 @@ object p04_Functor {
    *      type λ[α] = List[Option[RBEither[α]]]
    *      })#λ] = ...
    *
-   * This is an inline method of reshaping the needed type.  Compare
+   * This is an inline way of reshaping the needed type.  Compare
    */
 
   import scala.language.reflectiveCalls
   val ftor2 = Functor[List].compose[Option].compose[({type L[A] = Either[String,A]})#L]
 
   ftor2.map(list)(collatz)
+
+  /*
+   * A puzzler.
+   */
+
+  // val ftorSimple = Functor[List].compose[Option].compose[Either]  // Demands implicit for Functor[Either]
+
+  val eth: Either[String,Int] = Right(3)
+  eth map intToString                          // Had to find Functor[Either] to work.
+
+  /*
+   * SI-2712 (-Ypartial-unification) improved Scala type inference in useful ways
+   * to make working with higher-kinded types require less boilerplate.
+   *
+   * What's going on above is that to declare Either with the correct kind for
+   * a Functor we need to use the type alias or inline re-shapes.  When the compiler
+   * is left to its own devices to unify types it will try to find a correct shape
+   * by trying to fill in types from left to right.  For the map example the compiler
+   * saw we were trying to use map on an Either (i.e., needs a Functor so a kind * -> *).
+   * It didn't find a map (Functor) for Either[_, _] but did when it tried Either[String,_].
+   *
+   * To take best advantage of partial-unification when creating types save the final
+   * type position for the type you want `map` to work on.
+   */
 }

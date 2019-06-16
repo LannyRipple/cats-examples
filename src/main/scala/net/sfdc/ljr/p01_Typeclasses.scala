@@ -1,6 +1,6 @@
 package net.sfdc.ljr
 
-object p01_Typeclass {
+object p01_Typeclasses {
 
   /*
    * When you hear "typeclass" think "helper".
@@ -8,6 +8,18 @@ object p01_Typeclass {
    * A Typeclass is a trait parameterized by type or types which is used
    * to create implicit instances.  These instances are pulled in by the compiler
    * as helpers for your code.
+   *
+   * Well now I've done it.  We have to talk about implicits.  An implicit
+   * is just a marker for the compiler to know it can provide a helper
+   * or take some other action based on a specific type.
+   *
+   * Implicits are basically used for four things... Nevermind.  Just read
+   * a great article about them -
+   *
+   *    http://www.lihaoyi.com/post/ImplicitDesignPatternsinScala.html
+   *
+   * What we need to know about them is we can create a Typeclass (a helper)
+   * and get the compiler to provide it for us when we want it.
    */
 
   trait ExampleShow[A] {

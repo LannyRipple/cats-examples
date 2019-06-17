@@ -3,7 +3,7 @@ package net.sfdc.ljr
 object p02_Monoid {
 
   /*
-   * A `monoid` (for a type) is a way to "combine things".
+   * A Monoid[A] is a Typeclass (helper) which encapsulates a way to "combine things".
    * It has the following definition.
    */
 
@@ -11,14 +11,6 @@ object p02_Monoid {
     def empty: A
     def combine(a: A, b: A): A
   }
-
-  /*
-   * Laws a Monoid must obey to be well behaved.
-   *
-   *    combine(combine(a,b),c) === combine(a,combine(b,c)) // associativity
-   *    combine(empty,a) == a                               // left identity
-   *    combine(a,empty) == a                               // right identity
-   */
 
   /*
    * A rather obvious monoid on Int
@@ -49,7 +41,7 @@ object p02_Monoid {
   import cats.implicits._  // === import cats.instances._; import cats.syntax._
 
   def myAddAnything[A](xs: Traversable[A])(implicit monoid: Monoid[A]): A =
-    xs.foldLeft(monoid.empty){_ |+| _}
+    xs.foldLeft(monoid.empty){_ |+| _}  // -or-:   monoid.combineAll(xs)
 
   /*
    * Note that for Cats a Monoid[A] provides `empty: A` on top of
@@ -93,6 +85,14 @@ object p02_Monoid {
       Person("Linda", "TX", 77043)
     )
 
+  type Name = String
+  type State = String
+  type Zip = Int
+
+  // We want to turn above into these.
+  val _peopleWithStateWithZips: Map[Person,Map[State,List[Zip]]] = ???
+  val _statesWithPeopleWithZips: Map[State,(Set[Name],Set[Zip])] = ???
+
   // Note importing cats.implicits._ does our heavy lifting
   // - vs -
   //    import cats.instances.list._
@@ -103,7 +103,7 @@ object p02_Monoid {
   //    import cats.instances.string._
 
   val peopleWithStateWithZips = {
-    // Note derived monoid is: Monoid[Map[Person,Map[String,List[Int]]]]
+    // Note derived monoid is: Monoid[Map[Person,Map[State,List[Zip]]]]
 
     people.map { p =>
       Map(p -> Map(p.state -> List(p.zip)))
@@ -115,7 +115,7 @@ object p02_Monoid {
   }
 
   val statesWithPeopleZips = {
-    // Note derived monoid is: Monoid[Map[String,(Set[String],Set[Int])]
+    // Note derived monoid is: Monoid[Map[String,(Set[State],Set[Zip])]
 
     people.map{ p =>
       Map(p.state -> (Set(p.name), Set(p.zip)))

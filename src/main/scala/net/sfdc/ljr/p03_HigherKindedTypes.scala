@@ -30,7 +30,7 @@ object p03_HigherKindedTypes {
     }
 
   /*
-   * For the map function above we are calculating a value using a function supplied
+   * For the map function above we are calculating a _value_ using a function supplied
    * to the map.  This is pretty much the default view of higher-ordered functions in
    * Scala because you tend to call them as methods introduced via OOP.
    *
@@ -66,13 +66,13 @@ object p03_HigherKindedTypes {
    * The kind of Map is * -> * -> *.
    * The kind of Either is * -> * -> *.
    *
-   * Note that if we can fix the first type for Either, e.g.,
+   * Note that if we can fix the first type for Either with a type alias. E.g.,
    */
 
       type RightBiasedEither[A] = Either[String,A]
 
    /*
-    * then RightBiasedEither has kind * => * and we can use it as such in places
+    * then RightBiasedEither has kind * -> * and we could use it as such in places
     * that expect such a kind.
     */
 
@@ -88,9 +88,12 @@ object p03_HigherKindedTypes {
    * Given a type constructor (kind: * -> *) a Functor will return a new
    * type (kind: *) so the kind of a Functor is (* -> *) -> *.
    */
+
   import scala.language.higherKinds
 
   trait Functor[F[_]] {
+
+    // Using name `fmap` to clearly distinguish from the many Scala `map`s
     def fmap[A,B](fa: F[A])(f: A => B): F[B]
   }
 

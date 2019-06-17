@@ -5,8 +5,8 @@ import scala.concurrent.Future
 object p08_MonadTransformers {
 
   /*
-   * Monads, in general, do not compose.  That is, given monads F[_] and G[_],
-   * the type F[G[_]] does not always form a Monad.
+   * Monads, in general, do not compose.  That is, given Monads for F[_] and G[_],
+   * there is no generic way to write a Monad for F[G[_]].
    *
    * The problem
    * We have available Monad[F[_]] and Monad[G[_]].  We want to write Monad[F[G[_]]]
@@ -19,12 +19,17 @@ object p08_MonadTransformers {
    * Monad[G].flatMap has to have type F[G[B]] (but by definition can only be G[B]).
    * We can't get there from here.
    *
-   * Luckily, while we can't write a general composition of Monads many Monads
-   * will compose if we write a custom implementation of composition.  Such
-   * structures are called MonadTransformers.
+   * Luckily, while we can't write a general composition of Monads we can often
+   * write custom implementations of composition. Such structures are called
+   * MonadTransformers.
+   *
+   * MonadTransformers tend to be light wrappers that act like the named Monad
+   * while being embedded in a Monad of the first type position.
+   *
+   *    OptionT[F[_], A] === F[Option[A]]
    *
    * It's very difficult to provide short examples of MonadTransformers that provide
-   * a good motivation for their use.  This presentation, about dealing with HTTP
+   * a good motivation for their use.  The presentation below, about dealing with HTTP
    * services, Futures, and Options is one of the best I've come across where
    * MonadTransformers make a real difference.
    *
@@ -48,14 +53,14 @@ object p08_MonadTransformers {
    * simplify all this he works with the type
    */
 
-  trait Result  // A Result is something Play knows it can serialize for network
-                // transport with HTTP.
+  type HttpResult[A] = EitherT[Future, Result, A]
 
   // Working with Future needs an execution context.  In production we would provide
   // a custom one and not use the default.
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  type HttpResult[A] = EitherT[Future, Result, A]
+  trait Result  // A Result is something Play knows it can serialize for network
+                // transport with HTTP.
 
   /*
    * EitherT[Future, Result, A] === Future[Either[Result, A]]
@@ -68,12 +73,12 @@ object p08_MonadTransformers {
   /** Provide helpers to get us into the EitherT[Future,Result,A] shape. */
   object HttpResult {
 
-    def apply[A](v: Future[Either[Result, A]]): HttpResult[A] = EitherT(v)
-    def apply[A](v: Either[Result,A]): HttpResult[A] = EitherT(Future.successful(v))
-    def fromFuture[A](v: Future[A]): HttpResult[A] = EitherT(v.map(_.asRight[Result]))
-    def fromOption[A](oa: Option[A])(err: => Result): HttpResult[A] = apply(oa.toRight(err))
+    def apply[A](v: Future[Either[Result, A]]): HttpResult[A]              = EitherT(v)
+    def apply[A](v: Either[Result,A]): HttpResult[A]                       = EitherT(Future.successful(v))
+    def fromFuture[A](v: Future[A]): HttpResult[A]                         = EitherT(v.map(_.asRight[Result]))
+    def fromOption[A](oa: Option[A])(err: => Result): HttpResult[A]        = apply(oa.toRight(err))
     def fromEither[B,A](eba: Either[B,A])(err: B => Result): HttpResult[A] = apply(eba.leftMap(err))
-    def fromFOA[A](foa: Future[Option[A]])(err: => Result): HttpResult[A] = apply(foa.map(_.toRight(err)))
+    def fromFOA[A](foa: Future[Option[A]])(err: => Result): HttpResult[A]  = apply(foa.map(_.toRight(err)))
 
     // any others needed ...
   }

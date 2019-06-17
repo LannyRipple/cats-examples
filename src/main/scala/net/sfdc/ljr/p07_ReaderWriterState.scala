@@ -9,7 +9,7 @@ class p07_ReaderWriterState {
    * type E = <environment>
    * type L = <log>
    *
-   * The State implementation wraps S => (S, A)
+   * The State implementation wraps  S => (S, A)
    * The Reader implementation wraps E => A
    * The Writer implementation wraps L => (L, A)
    *
@@ -53,11 +53,11 @@ class p07_ReaderWriterState {
       "c" -> 7
     )
 
-  def lookup(sym: String): Reader[Symtable,Int] =
-    Reader { symtab => symtab.getOrElse(sym, 0) }
-
   def tablename: Reader[Symtable, String] =
     Reader{ symtab => symtab.keys.toList.sorted.map{k => k(0)}.mkString("")}
+
+  def lookup(sym: String): Reader[Symtable,Int] =
+    Reader { symtab => symtab.getOrElse(sym, 0) }
 
   // The following code gets wired together such that each call will
   // be given the (eventually provided) Symtable as its argument
@@ -84,6 +84,7 @@ class p07_ReaderWriterState {
   // A Chain is like a List but optimized for prefixing AND suffixing.
   // Because Writer appends each log entry to the end, using a List would give
   // O(N^2) behavior
+
   def gcd(a: Int, b: Int): Writer[Chain[String], Int] = {
     if (b == 0) {
       // if b == 0 we are done.  Log that fact.

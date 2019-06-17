@@ -8,6 +8,8 @@ object p06_StateMonad {
    */
 
   /*
+   * Motivating example.
+   *
    * Our system has a default Config that we might update based on runtime information.
    * We also want to track anything that might impact security.
    */
@@ -48,6 +50,31 @@ object p06_StateMonad {
     // Consider how you would test this thing.
   }
 
+
+  def overrideFields_II(overrideCommonFields: Seq[String], overrideNonCommonFields: Seq[String]): (Config, List[SecurityConcern]) = {
+    val config_01 = Defaults.config
+
+    val config_02 =
+      if (overrideCommonFields.isEmpty)
+        config_01
+      else
+        config_01.copy(commonFields = overrideCommonFields.toList)
+
+    val config_03 =
+      if (overrideCommonFields.isEmpty)
+        config_02
+      else
+        config_02.copy(nonCommonFields = overrideNonCommonFields.toList)
+
+    val concerns =
+      (config_03.commonFields ++ config_03.nonCommonFields)
+        .flatMap(checkForConcern)
+
+    config_03 -> concerns
+
+    // Still monolithic and tough to test elements
+  }
+
   /*
    * Using Cats
    *
@@ -58,12 +85,12 @@ object p06_StateMonad {
   import cats.implicits._  // === import cats.instances._; import cats.syntax._
 
   /*
-   * The implementation of the State monad uses a state transition function with types
+   * The implementation of the State monad wraps a function with type
    *
-   * type State        = <type of state to be mutated>
-   * type A            = <a result>
+   *    type S      = <type of state>
+   *    type A      = <a result>
    *
-   *   State => (State, A)
+   *    S => (S, A)
    */
 
   def overrideCommonFields(overrides: Seq[String]): State[Config, List[SecurityConcern]] =
@@ -96,25 +123,26 @@ object p06_StateMonad {
                                     // runA === Eval[List[SecurityConcern]]
     eval.value
 
-    // Consider testing differences to overrideFields_I
+    // Consider testing differences to overrideFields_I & _II
   }
 
   /*
    * As an aside if you just want to modify something without chaining temporary values
    *
    *   def work(...): Thing = {
-   *     val thing = ...
-   *     val thing_01 = something(config)
-   *     val thing_02 = something_else(config_01)
+   *     val thing_01 = ...
+   *     val thing_02 = something(thing_01)
+   *     val thing_03 = something_else(thing_02)
    *
-   *     something_to_finish(thing_02)
+   *     something_to_finish(thing_03)
    *   }
    *
    * We can compose the somethings with `andThen`
    */
 
-  def chain[A](updates: (A => A)*): A => A =
-    updates.foldLeft(identity[A]){_ andThen _}
+  def chain[A](updates: (A => A)*): A => A = {
+    updates.foldLeft(identity[A](_)){(f,g) => f andThen g}
+  }
 
   def overrideFields_withChain(config: Config, commonOverrides: Seq[String], nonCommonOverrides: Seq[String]): Config = {
     val updatedCommon =
@@ -123,7 +151,9 @@ object p06_StateMonad {
     val updatedNonCommon =
       { config: Config => if (nonCommonOverrides.isEmpty) config else config.copy(commonFields = nonCommonOverrides.toList) }
 
-    // (updateCommon andThen updateNonCommon)(config)  // with just a few updaters
+    // ( updateCommon
+    //     andThen updateNonCommon )(config)    // if using just a few updaters
+    //
 
     chain(
       updatedCommon,

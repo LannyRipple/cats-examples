@@ -24,11 +24,14 @@ object FunctorImplicits {
 
   import scala.language.reflectiveCalls
 
+  // The symbol salad in Functor[...] is an inline way to reshape R => A so that
+  // it has the kind that Functor needs.
   implicit def Function1Functor[R]: Functor[({type L[X] = R => X})#L] =
     new Functor[({type L[X] = R => X})#L] {
       def fmap[A, B](fa: R => A)(f: A => B): R => B =
         fa andThen f
     }
+
 
   /* Wrappers to add `fmap` as method */
 

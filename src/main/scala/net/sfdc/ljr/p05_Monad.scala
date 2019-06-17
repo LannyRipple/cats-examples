@@ -57,7 +57,7 @@ class p05_Monad {
     }}}
   }
 
-  // So a Monad let us flatten self-nested contexts and when first learning/using
+  // So a Monad let us flatten self-nested contexts.  When first learning/using
   // them this is the easiest way to think about them.  "I need to .map this/these
   // Option value(s) but I'd get back a nested Option.  I should use .flatMap"
 
@@ -83,7 +83,6 @@ class p05_Monad {
   import cats._            // import "kernel" definitions.  E.g., trait Monoid[A]
   import cats.data._       // import Validated, State constructors
   import cats.implicits._  // === import cats.instances._; import cats.syntax._
-
 
   import scala.language.higherKinds
 
@@ -132,8 +131,8 @@ class p05_Monad {
     def fireTheMissles: IO[Int] = ???
 
     /* compiler error */
-    def petKittens(kittens: Int, petsPerKitten: Int): Int =
-       kittens * petsPerKitten + fireTheMissles
+    // def petKittens(kittens: Int, petsPerKitten: Int): Int =
+    //   kittens * petsPerKitten + fireTheMissles  // !! Int + IO[Int]
 
     def petKillerKittens(kittens: Int, petsPerKitten: Int): IO[Int] =
       fireTheMissles.map { casualties =>

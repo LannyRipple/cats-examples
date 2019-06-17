@@ -4,10 +4,9 @@ object p04_Functor {
 
   /*
    * Functor was talked about a bit earlier.  It is a higher-kinded type constructor
-   * encapsulating the idea (and a type signature for implementation) of
-   * "things that can be mapped over".  That is, if your data structure can admit
-   * a Functor for a type it contains you can change the values (and types)
-   * using a `map` helper.
+   * encapsulating the concept of "things that can be mapped over".  That is to say,
+   * if your data structure that can admit a Functor for any type it contains
+   * you can change the values (and types) using the Functor as a `map` helper.
    */
 
   import scala.language.higherKinds
@@ -49,21 +48,23 @@ object p04_Functor {
    * (A lot of Cats assumes partial-unification.)
    */
 
-  // h: Int => String
+  // h: Int => Float
   val h =
     {x: Int => x * 3}                 // Int => Int
       .map {x: Int => x + 100}        // Int => Int
       .map(intToString)               // Int => String
+      .map(strToFloat)                // String => Float
 
-  h(1)  // "103"
+  h(1)  // 103.0f
 
-  // g: Int => String
+  // g: Int => Float
   val g =
     {x: Int => x * 3}                 // Int => Int
       .andThen {x: Int => x + 100}    // Int => Int
       .andThen(intToString)           // Int => String
+      .andThen(strToFloat)            // String => Float
 
-  g(1)  // "103"
+  g(1)  // 103.0f
 
   /*
    * Functor itself is more of a building block for more powerful Typeclasses but
@@ -91,11 +92,11 @@ object p04_Functor {
   list.map(_.map(_.right.map(collatz)))
 
   /*
-   * We'll see a lot of discussion around higher-kinded types "composing".
+   * Functors compose.
    *
    * Composition means that if F and G are (in this case) Functors then F[G[_]]
-   * is also a Functor.  Functors do compose and Cats can help you derive composed
-   * Functors.
+   * is also a Functor.  Functors compose and Cats can help you easily derive
+   * composed Functors.
    *
    * Note here that Either does not have the correct kind as needed by Functor.
    * Either has kind * -> * -> * and Functor needs * -> *.  We can introduce a
@@ -103,8 +104,8 @@ object p04_Functor {
    * what Functor needs to work.
    */
 
-  type RBEither[A] = Either[String,A]    // Needed so Either will have correct kind
-  val ftor = Functor[List].compose[Option].compose[RBEither]
+  type RightBiasedEither[A] = Either[String,A]    // Needed so Either will have correct kind
+  val ftor = Functor[List].compose[Option].compose[RightBiasedEither]
 
   ftor.map(list)(collatz)
 
@@ -112,10 +113,10 @@ object p04_Functor {
    * If we let Scala annotate the type for `ftor` it shows
    *
    *    val ftor: Functor[({
-   *      type λ[α] = List[Option[RBEither[α]]]
+   *      type λ[α] = List[Option[RightBiasedEither[α]]]
    *      })#λ] = ...
    *
-   * This is an inline way of reshaping the needed type.  Compare
+   * This is an inline way of reshaping the needed type.
    */
 
   import scala.language.reflectiveCalls
@@ -124,26 +125,42 @@ object p04_Functor {
   ftor2.map(list)(collatz)
 
   /*
+   * Nested
+   *
+   * If you are only working with two nested Functors F[G[A]] then Nested can help
+   * without having to construct a Functor composition.
+   */
+
+  val nested = Nested(List(Option(3), None, Option(7))).map(collatz)
+  nested.value
+
+   /*
+   * Only being able to work with two Functors at a time is a bit of a limitation
+   * for deep nesting but it can prove useful with other things provided by Cats.
+   */
+
+  // Here Nested.map is replacing the `.map{_.map{` of List[Option[...]]
+
+  Nested(list).map{_.right.map(collatz)}.value
+
+
+  /*
    * A puzzler.
    */
 
   // val ftorSimple = Functor[List].compose[Option].compose[Either]  // Demands implicit for Functor[Either]
 
   val eth: Either[String,Int] = Right(3)
-  eth map intToString                          // Had to find Functor[Either] to work.
+  eth map intToString                          // How is Either[String,Int] getting `map`?
 
   /*
-   * SI-2712 (-Ypartial-unification) improved Scala type inference in useful ways
-   * to make working with higher-kinded types require less boilerplate.
+   * Answer: Cats adds helpers to Either so acts like other types with Functors
    *
-   * What's going on above is that to declare Either with the correct kind for
-   * a Functor we need to use the type alias or inline re-shapes.  When the compiler
-   * is left to its own devices to unify types it will try to find a correct shape
-   * by trying to fill in types from left to right.  For the map example the compiler
-   * saw we were trying to use map on an Either (i.e., needs a Functor so a kind * -> *).
-   * It didn't find a map (Functor) for Either[_, _] but did when it tried Either[String,_].
-   *
-   * To take best advantage of partial-unification when creating types save the final
-   * type position for the type you want `map` to work on.
+   * Other useful helpers
    */
+
+  eth leftMap {_.length}  // Either[Int,Int]
+
+  eth valueOr {_.length}  // Like Option.getOrElse but uses a function on Left
+                          // to provide a value of Right's type.
 }

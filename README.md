@@ -1,11 +1,11 @@
 # Scala Cats and You
 
-A discussion of Typeclasses, Higher-kinded Types, and pointers about when they
+A discussion of Typeclasses, Higher-kinded Types, and examples of when they
 can be useful in code.
 
 ## How to use this repository
 
-Suggested reading order.  See Index.scala and use Intellij "Goto declaration".
+Suggested reading order.  Documents found in `src/main/scala/net/sfdc/ljr/`.
 
 | Topic | Type |
 |---|---|
@@ -17,8 +17,18 @@ Suggested reading order.  See Index.scala and use Intellij "Goto declaration".
 | State | code example |
 | ReaderWriterState | discussion |
 | Monad Transformers | discussion |
-| Applicative (Apply) | code example |
-| ValidatedNec | code example |
-| Kleisli Arrow | discussion |
-| Lens (Monocle) | code example |
-| Other Things | discussion |
+| Applicative (Apply, ValidatedNec) | code example |
+
+# Other
+
+There are lots of things of interest in Cats (and other libraries).
+
+Further reading.  Lots of good stuff here.  I've highlighted things that
+are a bit more useful or interesting.
+
+   * https://typelevel.org/cats/typeclasses.html
+   * https://typelevel.org/cats/datatypes.html
+      * Eval - Comes up when using State
+      * Id
+      * Kleisli
+   * Scala Lenses - https://julien-truffaut.github.io/Monocle/

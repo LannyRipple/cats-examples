@@ -89,6 +89,40 @@ object p03_HigherKindedTypes {
    * type (kind: *) so the kind of a Functor is (* -> *) -> *.
    */
 
+  /*
+   * Higher-higher-kinded types.
+   *
+   * (Based on a question during presentation.)  Higher-ordered functions
+   * come in increasingly complex forms.  You can have a function that takes
+   * another function as a paramter where the provided function is itself
+   * higher ordered.
+   *
+   * Higher-kinded types also can exhibit this same increasing complexity.
+   * Here is a scala REPL session for cats-examples
+   *
+
+      scala> import cats.Monad
+      import cats.Monad
+
+      scala> import cats.arrow.Arrow
+      import cats.arrow.Arrow
+
+      scala> import scala.language.higherKinds
+      import scala.language.higherKinds
+
+      scala> :kind -v Monad
+      cats.Monad's kind is X[F[A]]
+      (* -> *) -> *
+      This is a type constructor that takes type constructor(s): a higher-kinded type.
+
+      scala> :kind -v Arrow
+      cats.arrow.Arrow's kind is X[F[A1,A2]]
+      (* -> * -> *) -> *
+      This is a type constructor that takes type constructor(s): a higher-kinded type.
+
+   *
+   */
+
   import scala.language.higherKinds
 
   trait Functor[F[_]] {

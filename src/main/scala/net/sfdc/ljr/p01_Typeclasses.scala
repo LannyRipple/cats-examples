@@ -121,6 +121,8 @@ object TypeclassLaws {
    * `list.foldRight` as `list.reverse.foldLeft`.  This means that in Scala your
    * function also needs to be commutative [ fxy == fyx ] to get the same answers
    * from both methods.  Luckily, mostly nothing to worry about.)
+   *
+   * See also [[w04_Lawless_Functor.sc]] after reading [[p04_Functor]].
    */
 
   /*

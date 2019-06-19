@@ -13,8 +13,7 @@ class p07_ReaderWriterState {
    * The Reader implementation wraps E => A
    * The Writer implementation wraps L => (L, A)
    *
-   * Note that if we change Reader to be E => (E, A) where we never modify E
-   * then they are all using the same mechanics to achieve diffent goals.
+   * Note we can pretend Reader is   E => (E, A)   where we ignore changes to E.
    *
    * One other point.  The Id Monad gets tangled up in this.  The definition of
    * Id is
@@ -99,7 +98,7 @@ class p07_ReaderWriterState {
     }
   }
 
-  gcd(12, 16).run // cats.Id[(List[String], Int)] = (List(12 mod 16 = 12, 16 mod 12 = 4, 12 mod 4 = 0, Finished with 4),4)
+  gcd(12, 16).run // cats.Id[(Chain[String], Int)] = (Chain(12 mod 16 = 12, 16 mod 12 = 4, 12 mod 4 = 0, Finished with 4),4)
 
   /*
    * The punchline to this very long discussion containing a surprising amount of

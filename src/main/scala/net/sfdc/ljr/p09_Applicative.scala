@@ -31,13 +31,17 @@ object p09_Applicative {
    *    Monad[F[_]] extends Applicative[F]
    *       flatMap[A,B](fa: F[A])(f: A => F[B]): F[B]
    *
-   * Applicative lets us apply another A => B function shape and lift it into
-   * a context.
+   * (Even this isn't actually what Cats uses but go read the docs to understand why.)
+   *
+   * Applicative lets us use a pure A => B function shape inside a context.
    *
    *    Functor:       (A  =>   B ) => (F[A] => F[B])
    *    Applicative:  F[A  =>   B ] => (F[A] => F[B])
    *    Monad:         (A  => F[B]) => (F[A] => F[B])
-   *    CoMonad:     (F[A] =>   B)  => (F[A] => F[B])    // Deep magic.
+   *
+   * If you are wondering about the missing shape.  (We won't discuss these.)
+   *
+   *    CoMonad:     (F[A] =>   B)  => (F[A] => F[B])
    *
    * Sadly Scala's syntax and application order really obscures the relationship
    * between pure Functions and Applicatives.  Let's switch to Haskell's syntax
@@ -46,9 +50,9 @@ object p09_Applicative {
    * Haskell applies functions with whitespace between the paramaters.  Furthermore
    * a Haskell function only every returns a single result.  Basically EVERY Haskell
    * function is A => B.  It's just that B can itself be a Function or Function
-   * returning a Function or so on.
+   * returning a Function and so on.
    *
-   *    add :: a -> a -> a
+   *    add :: Integer -> Integer -> Integer
    *    add 3 4                     // 7... but
    *    plus3 = add 3               // (\n -> add 3 n)
    *    plus3 4                     // 7
@@ -94,7 +98,7 @@ object p09_Applicative {
   ( List(1,2),
     List(2,3,4),
     List(7) )
-    .mapN{ _ + _ + _ }
+    .mapN{ _ + _ + _ }    // List(10, 11, 12, 11, 12, 13)
 
   /*
    * Applicative is less powerful than Monad.
@@ -131,21 +135,23 @@ object p09_Applicative {
     }
 
     val invalidUser =
-      (validateName("", "fName"),
-        validateName("", "lName"))
+      (
+        validateName("", "fName"),
+        validateName("", "lName")
+      )
         .mapN(User)
 
-    invalidUser    // import cats.data.Validated.Valid
-                   // Invalid(Chain("Empty fName", "Empty lName"))
+    invalidUser    // Invalid(Chain("Empty fName", "Empty lName"))
 
     val validUser =
-      (validateName("lanny", "fName"),
-        validateName("  ripple", "lName"))
+      (
+        validateName("lanny", "fName"),
+        validateName("  ripple", "lName")
+      )
         .mapN(User)
 
 
-    validUser    // import cats.data.Validated.Valid
-                 // Valid(User("Lanny", "Ripple"))
+    validUser    // Valid(User("Lanny", "Ripple"))
   }
 
 

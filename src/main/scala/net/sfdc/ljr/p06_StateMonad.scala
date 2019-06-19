@@ -8,14 +8,18 @@ object p06_StateMonad {
    */
 
   /*
-   * Motivating example.
+   * Motivating example:
    *
-   * Our system has a default Config that we might update based on runtime information.
+   * Our system has a default Config that we might update based on
+   * runtime configuration information.
+   *
    * We also want to track anything that might impact security.
    */
-  case class Config(/* ... */ commonFields: List[String], nonCommonFields: List[String] /* , ... */)
+  type Field = String
 
-  case class SecurityConcern(field: String)
+  case class Config(/* ... */ commonFields: List[Field], nonCommonFields: List[Field] /* , ... */)
+
+  case class SecurityConcern(field: Field)
 
   val secureFields = Set(
     "password", "auth_token"
@@ -28,11 +32,11 @@ object p06_StateMonad {
     val config: Config =
       Config(
         commonFields = List("firstName", "lastName"),
-        nonCommonFields = List.empty[String]
+        nonCommonFields = List.empty[Field]
       )
   }
 
-  def overrideFields_I(overrideCommonFields: Seq[String], overrideNonCommonFields: Seq[String]): (Config, List[SecurityConcern]) = {
+  def overrideFields_I(overrideCommonFields: Seq[Field], overrideNonCommonFields: Seq[Field]): (Config, List[SecurityConcern]) = {
     var config = Defaults.config
 
     if (overrideCommonFields.nonEmpty)
@@ -51,7 +55,7 @@ object p06_StateMonad {
   }
 
 
-  def overrideFields_II(overrideCommonFields: Seq[String], overrideNonCommonFields: Seq[String]): (Config, List[SecurityConcern]) = {
+  def overrideFields_II(overrideCommonFields: Seq[Field], overrideNonCommonFields: Seq[Field]): (Config, List[SecurityConcern]) = {
     val config_01 = Defaults.config
 
     val config_02 =
@@ -90,10 +94,29 @@ object p06_StateMonad {
    *    type S      = <type of state>
    *    type A      = <a result>
    *
-   *    S => (S, A)
+   *    case class State[S,A](run: S => (S, A))
+   *
+   * Functor[State[S,_]]
+   *    def map[A,B](fa: State[S,A])(f: A => B): State[S,B] =
+   *      State { st =>
+   *        val (nextSt, a) = fa.run(st)
+   *        nextSt -> f(a)
+   *      }
+   *
+   * Monad[State[S,_]]
+   *    def pure[S,A](a: A): State[A] =
+   *      State { st => st -> a }
+   *
+   *    def flatMap[S,A](fa: State[S,A])(f: A => State[S,B]): State[S,B] =
+   *      State { st =>
+   *        val (nextSt, a) = fa.run(st)
+   *        val fb = f(a)                           // - returning here: State[S,State[S,B]]
+   *        val (nextSt2, b) = fb.run(nextSt)       // - Note correct shape if we just
+   *        nextSt2 -> b                            //     f(a).run(nextSt)
+   *      }
    */
 
-  def overrideCommonFields(overrides: Seq[String]): State[Config, List[SecurityConcern]] =
+  def overrideCommonFields(overrides: Seq[Field]): State[Config, List[SecurityConcern]] =
     State { config =>
       val updatedConfig = if (overrides.isEmpty) config else config.copy(commonFields = overrides.toList)
       val concerns = updatedConfig.commonFields.flatMap(checkForConcern)
@@ -101,7 +124,7 @@ object p06_StateMonad {
       updatedConfig -> concerns
     }
 
-  def overrideNonCommonFields(overrides: Seq[String]): State[Config, List[SecurityConcern]] =
+  def overrideNonCommonFields(overrides: Seq[Field]): State[Config, List[SecurityConcern]] =
     State { config =>
       val updatedConfig = if (overrides.isEmpty) config else config.copy(nonCommonFields = overrides.toList)
       val concerns = updatedConfig.commonFields.flatMap(checkForConcern)
@@ -109,7 +132,7 @@ object p06_StateMonad {
       updatedConfig -> concerns
     }
 
-  def overrideFields(config: Config, commonOverrides: Seq[String], nonCommonOverrides: Seq[String]): (Config, List[SecurityConcern]) = {
+  def overrideFields(config: Config, commonOverrides: Seq[Field], nonCommonOverrides: Seq[Field]): (Config, List[SecurityConcern]) = {
 
     val actions =
       for {
@@ -117,6 +140,8 @@ object p06_StateMonad {
         nonCommonConcerns <- overrideNonCommonFields(nonCommonOverrides)
       } yield
         commonConcerns ++ nonCommonConcerns
+
+    // Note: Eval is a Cats Typeclass controlling order of evaluation
 
     val eval = actions.run(config)  // run  === Eval[(Config, List[SecurityConcern])]
                                     // runS === Eval[Config]
@@ -127,7 +152,7 @@ object p06_StateMonad {
   }
 
   /*
-   * As an aside if you just want to modify something without chaining temporary values
+   * As an aside if you just want to modify something (A => A) without needing temporary values
    *
    *   def work(...): Thing = {
    *     val thing_01 = ...
@@ -137,14 +162,13 @@ object p06_StateMonad {
    *     something_to_finish(thing_03)
    *   }
    *
-   * We can compose the somethings with `andThen`
+   * We can compose the somethings with Function.chain
    */
 
-  def chain[A](updates: (A => A)*): A => A = {
-    updates.foldLeft(identity[A](_)){(f,g) => f andThen g}
-  }
+  // Allow Function.chain to work with vararg of A => A rather than Seq[A => A].
+  def chain[A](updates: (A => A)*): A => A = Function.chain(updates)
 
-  def overrideFields_withChain(config: Config, commonOverrides: Seq[String], nonCommonOverrides: Seq[String]): Config = {
+  def overrideFields_withChain(config: Config, commonOverrides: Seq[Field], nonCommonOverrides: Seq[Field]): Config = {
     val updatedCommon =
       { config: Config => if (commonOverrides.isEmpty) config else config.copy(commonFields = commonOverrides.toList) }
 

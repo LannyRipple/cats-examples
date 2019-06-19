@@ -22,8 +22,10 @@ object p08_MonadTransformers {
    * Luckily, while we can't write a general composition of Monads we can often
    * write custom implementations of composition. Such structures are called
    * MonadTransformers.
-   *
-   * MonadTransformers tend to be light wrappers that act like the named Monad
+   */
+
+  /*
+   * MonadTransformers are light wrappers that act like the named Monad
    * while being embedded in a Monad of the first type position.
    *
    *    OptionT[F[_], A] === F[Option[A]]
@@ -49,8 +51,10 @@ object p08_MonadTransformers {
   /*
    * As a quick notes for the presentation the presenter is using the Play web
    * framework.  Play is asynchonous and very much wants you to work with Futures.
-   * He also is accessing databases and often comes up with Option results.  To
-   * simplify all this he works with the type
+   * He also is accessing databases and often comes up with Option results.  His
+   * goal is to write his system in such a way that he can propogate errors
+   * ("User not found.  Cannot show blog posts.") but also have a clean
+   * workflow.  To achieve the goal he works with the type
    */
 
   type HttpResult[A] = EitherT[Future, Result, A]
@@ -68,17 +72,24 @@ object p08_MonadTransformers {
    * The idea is that we can build up work in the normal Monadic style (for/yield
    * or chains of .flatMap) but if we hit an error we can provide it as a Left
    * and the error message will be the final result rather than further computation.
+   *
+   * Where's the Options in all this?  Note that Option[A] is very close in
+   * shape to Either[E,A] if we can provide some E for the None case.
    */
 
   /** Provide helpers to get us into the EitherT[Future,Result,A] shape. */
   object HttpResult {
 
-    def apply[A](v: Future[Either[Result, A]]): HttpResult[A]              = EitherT(v)
-    def apply[A](v: Either[Result,A]): HttpResult[A]                       = EitherT(Future.successful(v))
-    def fromFuture[A](v: Future[A]): HttpResult[A]                         = EitherT(v.map(_.asRight[Result]))
+    def apply[A](fea: Future[Either[Result, A]]): HttpResult[A]            = EitherT(fea)
+    def apply[A](ea: Either[Result,A]): HttpResult[A]                      = EitherT(Future.successful(ea))
+
+    // Cannot name `apply` since types would get confused.
+    def pure[A](a: A): HttpResult[A]                                       = EitherT(Future.successful(a.asRight[Result]))
+    def fromFuture[A](fa: Future[A]): HttpResult[A]                        = EitherT(fa.map(_.asRight[Result]))
+
     def fromOption[A](oa: Option[A])(err: => Result): HttpResult[A]        = apply(oa.toRight(err))
-    def fromEither[B,A](eba: Either[B,A])(err: B => Result): HttpResult[A] = apply(eba.leftMap(err))
     def fromFOA[A](foa: Future[Option[A]])(err: => Result): HttpResult[A]  = apply(foa.map(_.toRight(err)))
+    def fromEither[B,A](eba: Either[B,A])(err: B => Result): HttpResult[A] = apply(eba.leftMap(err))
 
     // any others needed ...
   }
@@ -89,18 +100,24 @@ object p08_MonadTransformers {
   }
 
   /** Thrush operator to pretty things up */
-  implicit class Thrush[A](val in: A) extends AnyVal {
-    def |>[B](f: A => B): B = f(in)
+  implicit class Thrush[A](val a: A) extends AnyVal {
+    def |>[B](f: A => B): B = f(a)
   }
 
-  /** Example computation -- Cheating a little since we don't have needed imports
+  /** Example computation -- In comment since we don't have needed imports
+  {{{
+
+    def validate[A](json: JsRoot): A = ???
+    def findUser(query: Query): Option[User] = ???
+    def getPosts(id: UserId): Future[List[Post]] = ???
+
 
     def showPosts = Action.async(parse.Json) { request =>
 
       val result =
         for {
-          query <- request.body.validate[Query]  |> HttpResult.fromJsResult
-          user <- findUser(query)                |> HttpResult.fromFOA(NotFound("User not found!"))
+          query <- request.body.validate[Query]  |> HttpResult.pure
+          user <- findUser(query)                |> HttpResult.fromOption( NotFound("User not found.  Cannot show blog posts.) )
           posts <- getPosts(user.id)             |> HttpResult.fromFuture
         } yield
           Ok(Json.toJson(posts))
@@ -108,5 +125,6 @@ object p08_MonadTransformers {
       result.runResult
     }
 
+  }}}
   */
 }

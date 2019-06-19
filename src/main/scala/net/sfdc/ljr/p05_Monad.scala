@@ -128,14 +128,14 @@ class p05_Monad {
     import cats.effect.IO
 
     // Return casualty count
-    def fireTheMissles: IO[Int] = ???
+    def `fireThe "Laser"`: IO[Int] = ???
 
     /* compiler error */
     // def petKittens(kittens: Int, petsPerKitten: Int): Int =
-    //   kittens * petsPerKitten + fireTheMissles  // !! Int + IO[Int]
+    //   kittens * petsPerKitten + `fireThe "Laser"`  // !! Int + IO[Int]
 
     def petKillerKittens(kittens: Int, petsPerKitten: Int): IO[Int] =
-      fireTheMissles.map { casualties =>
+      `fireThe "Laser"`.map { casualties =>
         kittens * petsPerKitten + casualties
       }
   }

@@ -42,7 +42,7 @@ object p06_StateMonad {
     if (overrideCommonFields.nonEmpty)
       config = config.copy(commonFields = overrideCommonFields.toList)
 
-    if (overrideCommonFields.nonEmpty)
+    if (overrideNonCommonFields.nonEmpty)
       config = config.copy(nonCommonFields = overrideNonCommonFields.toList)
 
     val concerns =
@@ -134,7 +134,7 @@ object p06_StateMonad {
 
   def overrideFields(config: Config, commonOverrides: Seq[Field], nonCommonOverrides: Seq[Field]): (Config, List[SecurityConcern]) = {
 
-    val actions =
+    val actions: State[Config, List[SecurityConcern]] =
       for {
         commonConcerns <- overrideCommonFields(commonOverrides)
         nonCommonConcerns <- overrideNonCommonFields(nonCommonOverrides)

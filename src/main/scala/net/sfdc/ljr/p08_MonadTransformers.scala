@@ -30,6 +30,8 @@ object p08_MonadTransformers {
    *
    *    OptionT[F[_], A] === F[Option[A]]
    *
+   *    OptionT[Future, A]  === Future[Option[A]]
+   *
    * It's very difficult to provide short examples of MonadTransformers that provide
    * a good motivation for their use.  The presentation below, about dealing with HTTP
    * services, Futures, and Options is one of the best I've come across where

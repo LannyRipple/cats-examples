@@ -35,7 +35,7 @@ object Noop {
 
 // Run code with `noop1` imported, then using `noop2`.  Keep an eye on
 // results between the two runs.
-import Noop.{noop1 => noop}
+import Noop.{noop2 => noop}
 
 def program_list: List[Int] = {
   import Instances._

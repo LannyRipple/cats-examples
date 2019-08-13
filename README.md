@@ -3,11 +3,6 @@
 A discussion of Typeclasses, Higher-kinded Types, and examples of when they
 can be useful in code.
 
-This repo can be found at
-```
-git@git.soma.salesforce.com:lripple/cats-examples.git
-```
-
 ## How to use this repository
 
 Suggested reading order.  Documents found in `src/main/scala/net/sfdc/ljr/`.
